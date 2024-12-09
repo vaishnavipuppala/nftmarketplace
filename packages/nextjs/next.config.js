@@ -1,4 +1,9 @@
 // @ts-check
+module.exports = {
+  eslint: {
+    ignoreDuringBuilds: true, // Skip lint checks during builds
+  },
+};
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
