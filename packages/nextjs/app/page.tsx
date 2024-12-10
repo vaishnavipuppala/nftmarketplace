@@ -11,7 +11,7 @@ const Home: NextPage = () => {
 
   return (
     <>
-      <div className="flex items-center flex-col flex-grow pt-10 bg-gradient-to-br from-blue-50 via-white to-blue-100 min-h-screen">
+         <div className="min-h-screen bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 flex flex-col items-center px-6">
         <div className="px-5 text-center">
           <h1 className="text-center">
             <span className="block text-3xl sm:text-4xl mb-2 font-light text-gray-600">Welcome to</span>

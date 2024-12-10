@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -16,11 +15,12 @@ contract NFTAuction is ReentrancyGuard {
     }
 
     mapping(address => mapping(uint256 => Auction)) public auctions;
+    mapping(address => mapping(uint256 => Auction)) public settledAuctions;
     address[] public auctionContracts;
     mapping(address => uint256[]) public auctionTokenIds;
     address public feeRecipient;
     uint256 public feePercent;
-
+    
     event AuctionCreated(address indexed nftContract, uint256 indexed tokenId, uint256 endTime, uint256 startingBid);
     event BidPlaced(address indexed nftContract, uint256 indexed tokenId, address bidder, uint256 amount);
     event AuctionSettled(address indexed nftContract, uint256 indexed tokenId, address winner, uint256 amount);
@@ -32,6 +32,7 @@ contract NFTAuction is ReentrancyGuard {
 
     function createAuction(address nftContract, uint256 tokenId, uint256 startingBid, uint256 duration) external {
         require(auctions[nftContract][tokenId].endTime == 0, "Auction already exists");
+        require(startingBid > 0, "Starting bid must be greater than zero");
         require(duration > 0, "Duration must be greater than zero");
         IERC721 nft = IERC721(nftContract);
         require(nft.ownerOf(tokenId) == msg.sender, "Not the NFT owner");
@@ -89,7 +90,7 @@ contract NFTAuction is ReentrancyGuard {
 
         auction.settled = true;
 
-        if (auction.highestBid > 0) {
+        if (auction.highestBid > 0 && auction.highestBidder != address(0)) {
             uint256 fee = (auction.highestBid * feePercent) / 10000;
             uint256 sellerProceeds = auction.highestBid - fee;
 
@@ -104,6 +105,9 @@ contract NFTAuction is ReentrancyGuard {
             IERC721(nftContract).transferFrom(address(this), auction.seller, tokenId);
         }
 
+        settledAuctions[nftContract][tokenId] = auction;
+
+        delete auctions[nftContract][tokenId];
         _removeAuction(nftContract, tokenId);
 
         emit AuctionSettled(nftContract, tokenId, auction.highestBidder, auction.highestBid);
@@ -165,6 +169,11 @@ contract NFTAuction is ReentrancyGuard {
 
         return allAuctions;
     }
+
+    function isAuctionSettled(address nftContract, uint256 tokenId) external view returns (bool) {
+        return settledAuctions[nftContract][tokenId].endTime != 0;
+    }
+
 
     function _removeAuction(address nftContract, uint256 tokenId) internal {
         uint256[] storage tokenIds = auctionTokenIds[nftContract];

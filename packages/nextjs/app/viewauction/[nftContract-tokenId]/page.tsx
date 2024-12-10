@@ -24,6 +24,21 @@ export default function AuctionDetails({ params }: { params: { [key: string]: st
   const [nftContract, tokenId] = (params["nftContract-tokenId"] || "").split("-");
   const [bidAmount, setBidAmount] = useState("");
   const [remainingTime, setRemainingTime] = useState("00:00:00");
+  const [ethToUsdRate, setEthToUsdRate] = useState<number | null>(null);
+
+  const fetchEthToUsdRate = async () => {
+    try {
+      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+      const data = await response.json();
+      setEthToUsdRate(data.ethereum.usd);
+    } catch (error) {
+      console.error("Error fetching ETH to USD rate:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchEthToUsdRate();
+  }, []);
 
   const fetchAuctionDetails = async () => {
     if (!provider) {
@@ -69,11 +84,6 @@ export default function AuctionDetails({ params }: { params: { [key: string]: st
 
     if (parseFloat(bidAmount) <= parseFloat(details.highestBid)) {
       alert("Your bid must be higher than the current highest bid.");
-      return;
-    }
-
-    if (isNaN(parseFloat(bidAmount)) || parseFloat(bidAmount) <= 0) {
-      alert("Please enter a valid bid amount.");
       return;
     }
 
@@ -170,60 +180,94 @@ export default function AuctionDetails({ params }: { params: { [key: string]: st
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 flex flex-col items-center px-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8">Auction Details</h1>
+    <div className="flex flex-col items-center pt-10">
+      <h1 className="block text-4xl font-bold text-base-content mb-6">Auction Details</h1>
 
-        {loading && <p className="text-center text-lg">Loading auction details...</p>}
+      {loading && <p className="text-lg font-semibold text-base-content">Loading auction details...</p>}
 
-        {!loading && details && (
-          <div className="bg-gray-900 p-6 rounded-lg shadow-lg">
-            <p className="text-lg mb-4">
-              <strong>Seller:</strong> {details.seller}
+      {!loading && details && (
+        <div className="shadow-md p-8 w-full max-w-lg flex flex-col bg-base-100 rounded-3xl">
+          <p className="text-lg text-center">
+            <strong>Seller:</strong> {details.seller?.slice(0, 8)}...{details.seller?.slice(-6)}
+          </p>
+          <p className="text-lg text-center mt-2">
+            <strong>Highest Bidder:</strong> {details.highestBidder?.slice(0, 8)}...{details.highestBidder?.slice(-6)}
+          </p>
+          <p className="text-lg text-center mt-2">
+            <strong>Highest Bid:</strong> {details.highestBid} ETH
+            {ethToUsdRate && (
+              <span className="text-lg text-base-content">
+                {" "}
+                (~${(parseFloat(details.highestBid) * ethToUsdRate).toFixed(2)})
+              </span>
+            )}
+          </p>
+          <p className="text-lg text-center mt-2">
+            <strong>End Time:</strong> {details.endTime ? new Date(details.endTime * 1000).toLocaleString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            }) : ""}
+          </p>
+          <div className="mt-2">
+            <p className="text-lg text-center">
+              <strong>Time Remaining:</strong>
             </p>
-            <p className="text-lg mb-4">
-              <strong>Highest Bidder:</strong> {details.highestBidder}
-            </p>
-            <p className="text-lg mb-4">
-              <strong>Highest Bid:</strong> {details.highestBid} ETH
-            </p>
-            <p className="text-lg mb-4">
-              <strong>End Time:</strong> {new Date(details.endTime * 1000).toLocaleString()}
-            </p>
-            <p className="text-lg mb-4">
-              <strong>Remaining Time:</strong> {remainingTime}
-            </p>
-            <p className="text-lg mb-4">
-              <strong>Settled:</strong> {details.settled ? "Yes" : "No"}
-            </p>
-            {!details.settled &&
-              (!isAuctionEnded ? (
-                <div>
+            <div className="flex justify-center items-center space-x-4">
+              <FlipNumbers
+                height={50}
+                width={40}
+                color="currentColor"
+                background="transparent"
+                play
+                numbers={remainingTime}
+              />
+            </div>
+          </div>
+          <p className="text-lg text-center mt-8">
+            <strong>Settled:</strong> {details.settled ? "Yes" : "No"}
+          </p>
+          {!details.settled &&
+            (!isAuctionEnded
+              ? account !== details.seller &&
+              account !== details.highestBidder && (
+                <div className="mt-6">
                   <input
                     type="text"
                     placeholder="Enter your bid in ETH"
                     value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    className="w-full mb-4 p-2 rounded bg-gray-700 text-white"
+                    onChange={e => setBidAmount(e.target.value)}
+                    className="border rounded px-4 py-2 w-full mb-4"
                   />
-                  <button onClick={handleBid} className="w-full p-2 bg-blue-600 rounded hover:bg-blue-500">
+                  <p className="text-sm text-base-content mb-4">
+                    Note: Your bid must be higher than the current highest bid.
+                  </p>
+                  {ethToUsdRate && bidAmount && (
+                    <p className="text-sm text-base-content mb-4">
+                      Equivalent USD: ~${(parseFloat(bidAmount) * ethToUsdRate).toFixed(2)}
+                    </p>
+                  )}
+                  <button onClick={handleBid} className="btn btn-primary w-full">
                     Place Bid
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={handleSettleAuction}
-                  className="w-full p-2 bg-green-600 rounded hover:bg-green-500 mt-4"
-                >
+              )
+              : (account === details.seller || account === details.highestBidder) && (
+                <button onClick={handleSettleAuction} className="btn btn-secondary w-full mt-4">
                   Settle Auction
                 </button>
               ))}
-          </div>
-        )}
+        </div>
+      )}
 
-        {!loading && !details && <p className="text-center text-lg">No details found for this auction.</p>}
-
-        {status && <p className="text-center mt-4">{status}</p>}
-      </div>
+      {!loading && !details && (
+        <p className="text-lg font-semibold text-base-content">No details found for this auction.</p>
+      )}
+      {status && <p className="mt-4 text-sm text-center text-base-content">{status}</p>}
+    </div>
     </div>
   );
 }
