@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   11155111: {
     NFTAuction: {
-      address: "0x433d03f60d234D79fD049Fb44D98B661fae65904",
+      address: "0xde060555bDCa853cFBd5e49101033aF70327D2Ac",
       abi: [
         {
           inputs: [
@@ -555,7 +555,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     NFTCollection: {
-      address: "0x65469C54115f4A412A16E7FE047902FF0635E8D8",
+      address: "0xEb1964Bb65b97F6e4Bbc610A8CA81508bBEa2729",
       abi: [
         {
           inputs: [
@@ -1124,7 +1124,7 @@ const deployedContracts = {
       },
     },
     NFTCollectionRegistry: {
-      address: "0x18e46dF4d573Eb652385D26F0FE3e7F4161bb1fA",
+      address: "0x1542bffdE56E4E0677cbD7aFAB2da479d6489B44",
       abi: [
         {
           anonymous: false,

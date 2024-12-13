@@ -54,8 +54,8 @@ const config: ExtendedHardhatUserConfig = {
     
   },
   tenderly: {
-    project: "nftmarketplace",
-    username: "vaishnavi",
+    project: "nftmarketplace1",
+    username: "vaishnavi16",
     privateVerification: true
   },
 };
