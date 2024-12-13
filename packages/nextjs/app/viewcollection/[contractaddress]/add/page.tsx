@@ -1,3 +1,167 @@
+// "use client";
+
+// import { useState } from "react";
+// import deployedContracts from "../../../../contracts/deployedContracts";
+// import { useWallet } from "../../../../hooks/useWallet";
+// import { ethers } from "ethers";
+// import { PinataSDK } from "pinata-web3";
+// import { getContractStore } from "~~/services/contractStore";
+
+// const PINATA_JWT =
+//   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0YmJhZGY2Zi05NmFlLTRhYzQtOWZkNy03MjQ5MTQwMDhlZmUiLCJlbWFpbCI6InB1cHBhbGEubkBub3J0aGVhc3Rlcm4uZWR1IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjZhYzIyY2I3ZDJhY2YyMjU3NDM3Iiwic2NvcGVkS2V5U2VjcmV0IjoiNjMyYTUxZmE1Njg1Zjc2MGNhYzUyNzk0YzMxODg1YzZlZjQ2OTFlOTE1MjZmNjQ5MGRjYWVjYzdjNmM0YzlmYSIsImV4cCI6MTc2NDY0Mjc1OH0.eX4ISG4PxiCsWkSUAXE5T4E1WGj98b5wjPHwuHyPQw0";
+// const PINATA_GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || "";
+
+// export default function AddToCollection({ params }: { params: { contractaddress: string } }) {
+//   const { provider, connectWallet, account } = useWallet();
+//   const { contractaddress } = params;
+//   const [name, setName] = useState("");
+//   const [description, setDescription] = useState("");
+//   const [image, setImage] = useState<File | null>(null);
+//   const [status, setStatus] = useState("");
+//   const [creatingNFT, setCreatingNFT] = useState(false);
+
+//   const pinata = new PinataSDK({ pinataJwt: PINATA_JWT, pinataGateway: PINATA_GATEWAY_URL });
+
+//   const handleImageUpload = async () => {
+//     setCreatingNFT(true);
+//     if (!provider || !image || !name || !description) {
+//       alert("Please provide all required inputs and connect your wallet.");
+//       return;
+//     }
+
+//     setStatus("Preparing to mint NFT...");
+//     try {
+//       const signer = provider.getSigner();
+//       const network = await provider.getNetwork();
+//       const networkId = network.chainId.toString();
+//       const numericNetworkId = parseInt(networkId, 10) as keyof typeof deployedContracts;
+//       const contractStore = getContractStore(numericNetworkId, signer as unknown as ethers.Signer);
+//       const contract = contractStore.getCollectionContractFromAddress(contractaddress);
+//       if (!contract) {
+//         console.error("Failed to get collection contract for address:", contractaddress);
+//         return;
+//       }
+
+//       setStatus("Uploading image to Pinata...");
+//       const originalFileName = image.name;
+//       const fileExtension = originalFileName.includes(".") ? originalFileName.split(".").pop() : "unknown";
+//       const originalFileNameWithoutExt = originalFileName.includes(".")
+//         ? originalFileName.substring(0, originalFileName.lastIndexOf("."))
+//         : originalFileName;
+//       const newFileName = `${originalFileNameWithoutExt}-${Date.now().toString()}.${fileExtension}`;
+//       const renamedImage = new File([image], newFileName, { type: image.type });
+//       setImage(renamedImage);
+
+//       const imageResponse = await pinata.upload.file(image);
+//       const imageUrl = `ipfs://${imageResponse.IpfsHash}`;
+//       const metadata = { name, description, image: imageUrl };
+//       const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
+//       const metadataFile = new File([metadataBlob], `${imageResponse.IpfsHash}_metadata.json`);
+
+//       setStatus("Uploading metadata to Pinata...");
+//       const metadataResponse = await pinata.upload.file(metadataFile);
+//       const metadataUrl = `ipfs://${metadataResponse.IpfsHash}`;
+
+//       setStatus("Minting NFT...");
+//       const tx = await contract.mintToken(account, metadataUrl);
+//       setStatus("Waiting for transaction to be mined...");
+//       const receipt = await provider.waitForTransaction(tx.hash);
+//       if (receipt.status === 1) {
+//         setStatus("NFT minted successfully!");
+//       } else {
+//         setStatus("Transaction failed. Please try again.");
+//       }
+//     } catch (error) {
+//       console.error("Error uploading image:", error);
+//       setStatus("Failed to upload image.");
+//     }
+//     setCreatingNFT(false);
+//   };
+
+//   return (
+//     <>
+//      <div className="min-h-screen bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 flex flex-col items-center px-6">
+//       <div className="flex items-center flex-col flex-grow pt-10">
+//         <h1 className="block text-4xl font-bold">Create Your NFT</h1>
+//         <div className="shadow-md p-8 w-full max-w-lg flex flex-col bg-base-100 rounded-3xl">
+//           <div className="mb-6">
+//             <label className="block font-semibold mb-2 text-base-content">Name</label>
+//             <input
+//               type="text"
+//               placeholder="Enter NFT Name"
+//               value={name}
+//               onChange={e => setName(e.target.value)}
+//               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+//             />
+//           </div>
+//           <div className="mb-6">
+//             <label className="block font-semibold mb-2 text-base-content">Description</label>
+//             <textarea
+//               placeholder="Enter NFT Description"
+//               value={description}
+//               onChange={e => setDescription(e.target.value)}
+//               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+//               rows={4}
+//             ></textarea>
+//           </div>
+//           <div className="mb-6">
+//             <label className="block font-semibold mb-2 text-base-content">Upload Image</label>
+//             <label
+//               htmlFor="file-upload"
+//               className="cursor-pointer px-4 py-2 bg-primary rounded-lg shadow-md hover:bg-primary-focus transition text-base-content"
+//             >
+//               Choose File
+//             </label>
+//             <input
+//               id="file-upload"
+//               type="file"
+//               accept="image/*"
+//               onChange={e => setImage(e.target.files?.[0] || null)}
+//               className="hidden"
+//             />
+//             <span className="ml-3 mb-2 text-base-content">{image ? image.name : "No file chosen"}</span>
+//           </div>
+//           <button
+//             onClick={handleImageUpload}
+//             disabled={!provider || creatingNFT}
+//             className="w-full btn btn-primary font-bold flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+//           >
+//             {provider ? (
+//               creatingNFT ? (
+//                 <>
+//                   <svg
+//                     className="animate-spin h-5 w-5 mr-2 text-white"
+//                     xmlns="http://www.w3.org/2000/svg"
+//                     fill="none"
+//                     viewBox="0 0 24 24"
+//                   >
+//                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+//                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+//                   </svg>
+//                   Minting NFT...
+//                 </>
+//               ) : (
+//               "Mint NFT"
+//               )) : "Connect Wallet to Mint"}
+//           </button>
+//           {status && (
+//             <div className="mt-6 text-center">
+//               <p className="text-gray-600">{status}</p>
+//             </div>
+//           )}
+//           <div className="mt-4 text-center">
+//             {!account && (
+//               <button onClick={connectWallet} className="text-blue-600 hover:underline font-semibold">
+//                 Connect Wallet
+//               </button>
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//     </>
+//   );
+// }
 "use client";
 
 import { useState } from "react";
@@ -19,8 +183,24 @@ export default function AddToCollection({ params }: { params: { contractaddress:
   const [image, setImage] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [creatingNFT, setCreatingNFT] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const pinata = new PinataSDK({ pinataJwt: PINATA_JWT, pinataGateway: PINATA_GATEWAY_URL });
+
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(e.type === "dragover");
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setImage(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleImageUpload = async () => {
     setCreatingNFT(true);
@@ -80,85 +260,110 @@ export default function AddToCollection({ params }: { params: { contractaddress:
 
   return (
     <>
-     <div className="min-h-screen bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 flex flex-col items-center px-6">
-      <div className="flex items-center flex-col flex-grow pt-10">
-        <h1 className="block text-4xl font-bold">Create Your NFT</h1>
-        <div className="shadow-md p-8 w-full max-w-lg flex flex-col bg-base-100 rounded-3xl">
-          <div className="mb-6">
-            <label className="block font-semibold mb-2 text-base-content">Name</label>
-            <input
-              type="text"
-              placeholder="Enter NFT Name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block font-semibold mb-2 text-base-content">Description</label>
-            <textarea
-              placeholder="Enter NFT Description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              rows={4}
-            ></textarea>
-          </div>
-          <div className="mb-6">
-            <label className="block font-semibold mb-2 text-base-content">Upload Image</label>
-            <label
-              htmlFor="file-upload"
-              className="cursor-pointer px-4 py-2 bg-primary rounded-lg shadow-md hover:bg-primary-focus transition text-base-content"
-            >
-              Choose File
-            </label>
-            <input
-              id="file-upload"
-              type="file"
-              accept="image/*"
-              onChange={e => setImage(e.target.files?.[0] || null)}
-              className="hidden"
-            />
-            <span className="ml-3 mb-2 text-base-content">{image ? image.name : "No file chosen"}</span>
-          </div>
-          <button
-            onClick={handleImageUpload}
-            disabled={!provider || creatingNFT}
-            className="w-full btn btn-primary font-bold flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+      <div className="min-h-screen bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 flex flex-col items-center px-6">
+        <div className="flex items-center flex-col flex-grow pt-10">
+          <h1 className="block text-4xl font-bold">Create Your NFT</h1>
+          <div
+            className={`shadow-md p-8 w-full max-w-lg flex flex-col bg-base-100 rounded-3xl ${dragActive ? "border-4 border-dashed border-blue-500" : ""}`}
+            onDragOver={handleDrag}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
           >
-            {provider ? (
-              creatingNFT ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 mr-2 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                  </svg>
-                  Minting NFT...
-                </>
-              ) : (
-              "Mint NFT"
-              )) : "Connect Wallet to Mint"}
-          </button>
-          {status && (
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">{status}</p>
+            <div className="mb-6">
+              <label className="block font-semibold mb-2 text-base-content">Name</label>
+              <input
+                type="text"
+                placeholder="Enter NFT Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
             </div>
-          )}
-          <div className="mt-4 text-center">
-            {!account && (
-              <button onClick={connectWallet} className="text-blue-600 hover:underline font-semibold">
-                Connect Wallet
-              </button>
+            <div className="mb-6">
+              <label className="block font-semibold mb-2 text-base-content">Description</label>
+              <textarea
+                placeholder="Enter NFT Description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                rows={4}
+              ></textarea>
+            </div>
+            <div className="mb-6">
+              <label className="block font-semibold mb-2 text-base-content">Upload Image</label>
+              <div
+                className="w-full h-40 flex justify-center items-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer"
+                onDragOver={handleDrag}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+              >
+                {image ? <p>{image.name}</p> : <p>Drag & drop an image, or click to select a file</p>}
+              </div>
+              <input
+                id="file-upload"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImage(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+            </div>
+            <button
+              onClick={handleImageUpload}
+              disabled={!provider || creatingNFT}
+              className="w-full btn btn-primary font-bold flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {provider ? (
+                creatingNFT ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    Minting NFT...
+                  </>
+                ) : (
+                  "Mint NFT"
+                )
+              ) : (
+                "Connect Wallet to Mint"
+              )}
+            </button>
+            {status && (
+              <div className="mt-6 text-center">
+                <p className="text-gray-600">{status}</p>
+              </div>
             )}
+            <div className="mt-4 text-center">
+              {!account && (
+                <button
+                  onClick={connectWallet}
+                  className="text-blue-600 hover:underline font-semibold"
+                >
+                  Connect Wallet
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 }
